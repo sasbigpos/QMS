@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>QueueFlow — Display Board</title>
+<title>QMS — Display Board</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -39,12 +39,19 @@
   .ticker{background:var(--surface);border-top:1px solid var(--border);padding:10px 48px;display:flex;gap:48px;height:42px;align-items:center;flex-shrink:0}
   .ticker-item{font-size:13px;color:var(--muted);white-space:nowrap;display:flex;align-items:center;gap:8px}
   .ticker-num{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent)}
+  .wait-summary{background:var(--surface);border:1.5px solid #C8502A22;border-radius:var(--radius);padding:20px 24px;margin-bottom:24px}
+  .wait-summary-lbl{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:10px;font-family:'Syne',sans-serif}
+  .wait-summary-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .wait-summary-row:last-child{margin-bottom:0;padding-top:10px;border-top:1px solid var(--border)}
+  .wait-summary-key{font-size:12px;color:var(--muted)}
+  .wait-summary-val{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--accent)}
+  .wait-summary-total{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:var(--accent)}
   @keyframes flash{0%,100%{background:var(--accent-light2)}50%{background:var(--accent);color:#fff}}
 </style>
 </head>
 <body>
 <nav>
-  <div class="logo">Queue<span>Flow</span></div>
+  <div class="logo">QMS</div>
   <div class="nav-links">
     <a class="nav-link" href="admin.html">Admin</a>
     <span class="nav-link active">Display Board</span>
@@ -57,10 +64,9 @@
 </nav>
 
 <div class="disp-header">
-  <div class="brand" id="display-brand">🍽 My Restaurant</div>
+  <div class="brand" id="display-brand" style="font-family:Arial,sans-serif">My Restaurant</div>
   <div class="hstats">
     <div class="hstat"><div class="hstat-val" id="disp-total">0</div><div class="hstat-lbl">Waiting</div></div>
-    <div class="hstat"><div class="hstat-val">1</div><div class="hstat-lbl">Counter</div></div>
     <div class="clock" id="disp-clock">00:00:00</div>
   </div>
 </div>
@@ -80,6 +86,25 @@
   <!-- Queue -->
   <div class="queue-panel">
     <div class="panel-lbl">Queue — Dine In <span id="queue-count" style="font-family:'JetBrains Mono',monospace;color:var(--accent)">0</span></div>
+    <div class="wait-summary" id="wait-summary" style="display:none">
+      <div class="wait-summary-lbl">Estimated Wait Times</div>
+      <div class="wait-summary-row">
+        <span class="wait-summary-key">Next in line</span>
+        <span class="wait-summary-val" id="wsum-next">—</span>
+      </div>
+      <div class="wait-summary-row" id="wsum-mid-row">
+        <span class="wait-summary-key" id="wsum-mid-label">Middle of queue</span>
+        <span class="wait-summary-val" id="wsum-mid">—</span>
+      </div>
+      <div class="wait-summary-row">
+        <span class="wait-summary-key">Last in queue</span>
+        <span class="wait-summary-val" id="wsum-last">—</span>
+      </div>
+      <div class="wait-summary-row">
+        <span class="wait-summary-key" style="font-weight:700;color:var(--text)">Total est. wait (last ticket)</span>
+        <span class="wait-summary-total" id="wsum-total">—</span>
+      </div>
+    </div>
     <div class="token-grid" id="token-grid"><span style="font-size:14px;color:var(--muted)">No tickets yet</span></div>
   </div>
 </div>
@@ -99,7 +124,7 @@ function render() {
   const q   = state.queues.dine;
   const srv = state.serving && state.serving.category === 'dine' ? state.serving : null;
 
-  document.getElementById('display-brand').textContent = '🍽 ' + state.restaurantName;
+  document.getElementById('display-brand').textContent = state.restaurantName;
   document.getElementById('disp-total').textContent    = q.length;
   document.getElementById('queue-count').textContent   = q.length;
 
@@ -127,6 +152,30 @@ function render() {
     ? '<span style="font-size:14px;color:var(--muted)">No tickets yet</span>'
     : q.slice(0, 16).map((t, i) => '<div class="token' + (i === 0 ? ' next' : '') + '">' + t.number + '</div>').join('')
       + (q.length > 16 ? '<div style="font-size:13px;color:var(--muted);padding:10px 0">+' + (q.length - 16) + ' more</div>' : '');
+
+  // Wait summary
+  const wsum = document.getElementById('wait-summary');
+  if (q.length > 0) {
+    wsum.style.display = 'block';
+    const avg   = state.waitSettings.dine;
+    const ctrs  = state.activeCounters;
+    const wNext = estimateWait(0, ctrs, avg);
+    const wLast = estimateWait(q.length - 1, ctrs, avg);
+    document.getElementById('wsum-next').textContent  = '~' + wNext + ' min';
+    document.getElementById('wsum-total').textContent = '~' + wLast + ' min';
+    const midRow = document.getElementById('wsum-mid-row');
+    if (q.length >= 3) {
+      midRow.style.display = 'flex';
+      const midIdx = Math.floor((q.length - 1) / 2);
+      const wMid   = estimateWait(midIdx, ctrs, avg);
+      document.getElementById('wsum-mid-label').textContent = 'Ticket #' + (midIdx + 1) + ' (middle)';
+      document.getElementById('wsum-mid').textContent = '~' + wMid + ' min';
+    } else {
+      midRow.style.display = 'none';
+    }
+  } else {
+    wsum.style.display = 'none';
+  }
 
   const ticker = document.getElementById('ticker');
   if (state.announcements.length > 0) {

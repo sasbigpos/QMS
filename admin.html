@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>QueueFlow — Admin</title>
+<title>QMS — Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -74,7 +74,7 @@
 </head>
 <body>
 <nav>
-  <div class="logo">Queue<span>Flow</span></div>
+  <div class="logo">QMS</div>
   <div class="nav-links">
     <span class="nav-link active">Admin</span>
     <a class="nav-link" href="display.html">Display Board</a>
@@ -99,7 +99,7 @@
       <button class="btn btn-sm" id="btn-edit-name" onclick="toggleEditName()">Edit Name</button>
     </div>
     <div class="card" style="padding:18px 22px">
-      <div id="name-display"><span style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800" id="name-display-text">🍽 My Restaurant</span></div>
+      <div id="name-display"><span style="font-family:Arial,sans-serif;font-size:20px;font-weight:800" id="name-display-text">My Restaurant</span></div>
       <div id="name-edit" class="hidden">
         <input type="text" id="restaurant-name-input" placeholder="e.g. Nasi Kandar Pelita" style="width:100%;padding:10px 14px;border:1.5px solid var(--accent);border-radius:9px;font-size:18px;font-weight:700;font-family:'Syne',sans-serif;outline:none;background:#FDF0EB;color:var(--text)" onkeydown="if(event.key==='Enter')saveName();if(event.key==='Escape')toggleEditName()">
         <div class="flex gap-8 mt-8"><button class="btn btn-sm" onclick="toggleEditName()">Cancel</button><button class="btn btn-sm btn-primary" onclick="saveName()">Save</button></div>
@@ -179,7 +179,7 @@ function render() {
   const q = state.queues.dine;
   document.getElementById('nav-dine').textContent    = q.length;
   document.getElementById('admin-total').textContent = q.length;
-  document.getElementById('name-display-text').textContent = '🍽 ' + state.restaurantName;
+  document.getElementById('name-display-text').textContent = state.restaurantName;
   const w = estimateWait(0, state.activeCounters, state.waitSettings.dine);
   document.getElementById('wait-display-dine').textContent = state.waitSettings.dine;
   document.getElementById('wait-meta-dine').textContent = q.length + ' waiting · ' + state.activeCounters + ' counter';

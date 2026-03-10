@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════
-//  QueueFlow — shared.js
+//  QMS — shared.js
 //  Uses Supabase for real-time sync + state persistence.
 //  No server needed — works on GitHub Pages.
 // ═══════════════════════════════════════════════════════
