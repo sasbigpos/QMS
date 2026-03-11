@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>QMS — Display Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#F4F1EC;--surface:#FFF;--border:#E2DDD6;--text:#1A1714;--muted:#9E9890;--accent:#C8502A;--accent-light:#FDF0EB;--accent-light2:#FFF8F5;--shadow:0 2px 12px rgba(26,23,20,.08);--radius:14px}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Outfit',sans-serif;background:var(--accent-light2);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+  nav{background:var(--surface);border-bottom:1px solid var(--border);height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;box-shadow:var(--shadow);flex-shrink:0}
+  .logo{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;letter-spacing:-.5px}.logo span{color:var(--accent)}
+  .nav-links{display:flex;gap:6px}
+  .nav-link{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--border);cursor:pointer;text-decoration:none;color:#5C5753;background:transparent;transition:all .18s}
+  .nav-link.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #ws-status{font-size:11px;font-weight:700;padding:4px 11px;border-radius:20px;border:1px solid transparent}
+  .disp-header{background:var(--accent);padding:16px 48px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+  .brand{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff}
+  .hstats{display:flex;gap:32px;align-items:center}
+  .hstat{text-align:center}
+  .hstat-val{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:#fff;line-height:1}
+  .hstat-lbl{font-size:10px;opacity:.75;text-transform:uppercase;letter-spacing:1.5px;color:#fff;margin-top:2px}
+  .clock{font-family:'JetBrains Mono',monospace;font-size:20px;color:#fff;opacity:.95}
+  .main{flex:1;display:flex;overflow:hidden}
+  .now-panel{width:50%;background:var(--surface);border-right:2px solid var(--border);padding:56px;display:flex;flex-direction:column;justify-content:center}
+  .queue-panel{width:50%;padding:40px 48px;overflow-y:auto}
+  .panel-lbl{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:24px;font-family:'Syne',sans-serif}
+  .now-num{font-family:'JetBrains Mono',monospace;font-size:160px;font-weight:700;line-height:1;letter-spacing:-6px;color:var(--accent);transition:all .35s}
+  .now-sub{font-size:18px;color:var(--muted);margin-top:12px}
+  .wait-box{margin-top:40px;padding:24px;background:var(--accent-light);border-radius:var(--radius);border:1.5px solid #C8502A22}
+  .wait-lbl{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:10px}
+  .wait-val{font-family:'JetBrains Mono',monospace;font-size:48px;font-weight:700;color:var(--accent);line-height:1}
+  .wait-unit{font-size:16px;color:var(--muted);margin-left:6px}
+  .wait-desc{font-size:13px;color:var(--muted);margin-top:8px}
+  .token-grid{display:flex;flex-wrap:wrap;gap:10px}
+  .token{padding:10px 18px;border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;background:var(--surface);color:var(--accent);border:1.5px solid #C8502A44;transition:all .2s}
+  .token.next{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 4px 14px #C8502A44}
+  .ticker{background:var(--surface);border-top:1px solid var(--border);padding:10px 48px;display:flex;gap:48px;height:42px;align-items:center;flex-shrink:0}
+  .ticker-item{font-size:13px;color:var(--muted);white-space:nowrap;display:flex;align-items:center;gap:8px}
+  .ticker-num{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent)}
+  .wait-summary{background:var(--surface);border:1.5px solid #C8502A22;border-radius:var(--radius);padding:20px 24px;margin-bottom:24px}
+  .wait-summary-lbl{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:10px;font-family:'Syne',sans-serif}
+  .wait-summary-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .wait-summary-row:last-child{margin-bottom:0;padding-top:10px;border-top:1px solid var(--border)}
+  .wait-summary-key{font-size:12px;color:var(--muted)}
+  .wait-summary-val{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--accent)}
+  .wait-summary-total{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:var(--accent)}
+  @keyframes flash{0%,100%{background:var(--accent-light2)}50%{background:var(--accent);color:#fff}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">QMS</div>
+  <div class="nav-links">
+    <a class="nav-link" href="admin.html">Admin</a>
+    <span class="nav-link active">Display Board</span>
+    <a class="nav-link" href="staff.html">Staff Counter</a>
+  </div>
+  <div style="display:flex;gap:12px;align-items:center">
+    <div id="ws-status">Connecting…</div>
+    <div class="clock" id="nav-clock" style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--muted)"></div>
+  </div>
+</nav>
+
+<div class="disp-header">
+  <div class="brand" id="display-brand" style="font-family:Arial,sans-serif">My Restaurant</div>
+  <div class="hstats">
+    <div class="hstat"><div class="hstat-val" id="disp-total">0</div><div class="hstat-lbl">Waiting</div></div>
+    <div class="clock" id="disp-clock">00:00:00</div>
+  </div>
+</div>
+
+<div class="main">
+  <!-- Now Serving -->
+  <div class="now-panel">
+    <div class="panel-lbl">Now Serving</div>
+    <div class="now-num" id="now-num">—</div>
+    <div class="now-sub" id="now-sub"></div>
+    <div class="wait-box">
+      <div class="wait-lbl">Estimated Wait for Next</div>
+      <div id="wait-display"><div style="font-size:22px;font-weight:800;color:var(--muted)">No Queue</div><div style="font-size:13px;color:var(--muted);margin-top:4px">Walk in anytime</div></div>
+    </div>
+  </div>
+
+  <!-- Queue -->
+  <div class="queue-panel">
+    <div class="panel-lbl">Queue — Dine In <span id="queue-count" style="font-family:'JetBrains Mono',monospace;color:var(--accent)">0</span></div>
+    <div class="token-grid" id="token-grid"><span style="font-size:14px;color:var(--muted)">No tickets yet</span></div>
+    <div class="wait-summary" id="wait-summary" style="display:none;margin-top:24px;margin-bottom:0">
+      <div class="wait-summary-lbl">Estimated Wait Times</div>
+      <div class="wait-summary-row">
+        <span class="wait-summary-key">Next in line</span>
+        <span class="wait-summary-val" id="wsum-next">—</span>
+      </div>
+      <div class="wait-summary-row" id="wsum-mid-row">
+        <span class="wait-summary-key" id="wsum-mid-label">Middle of queue</span>
+        <span class="wait-summary-val" id="wsum-mid">—</span>
+      </div>
+      <div class="wait-summary-row">
+        <span class="wait-summary-key">Last in queue</span>
+        <span class="wait-summary-val" id="wsum-last">—</span>
+      </div>
+      <div class="wait-summary-row">
+        <span class="wait-summary-key" style="font-weight:700;color:var(--text)">Total est. wait (last ticket)</span>
+        <span class="wait-summary-total" id="wsum-total">—</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ticker hidden" id="ticker"></div>
+
+<script src="shared.js"></script>
+<script>
+function flashNowServing() {
+  const el = document.getElementById('now-num');
+  el.style.animation = 'none';
+  el.offsetHeight; // reflow
+  el.style.animation = 'flash 0.6s ease 3';
+}
+
+function render() {
+  const q   = state.queues.dine;
+  const srv = state.serving && state.serving.category === 'dine' ? state.serving : null;
+
+  document.getElementById('display-brand').textContent = state.restaurantName;
+  document.getElementById('disp-total').textContent    = q.length;
+  document.getElementById('queue-count').textContent   = q.length;
+
+  const numEl = document.getElementById('now-num');
+  const subEl = document.getElementById('now-sub');
+  if (srv) {
+    numEl.textContent = srv.number;
+    subEl.textContent = srv.pax + ' pax';
+  } else {
+    numEl.textContent = '—';
+    subEl.textContent = '';
+  }
+
+  const wd = document.getElementById('wait-display');
+  const nw = estimateWait(0, state.activeCounters, state.waitSettings.dine);
+  if (q.length > 0 && nw !== null) {
+    wd.innerHTML = '<div style="display:flex;align-items:flex-end;gap:6px"><span class="wait-val">~' + nw + '</span><span class="wait-unit">min</span></div>'
+      + '<div class="wait-desc">Est. wait for next in line</div>';
+  } else {
+    wd.innerHTML = '<div style="font-size:22px;font-weight:800;color:var(--muted)">No Queue</div><div style="font-size:13px;color:var(--muted);margin-top:4px">Walk in anytime</div>';
+  }
+
+  const grid = document.getElementById('token-grid');
+  grid.innerHTML = q.length === 0
+    ? '<span style="font-size:14px;color:var(--muted)">No tickets yet</span>'
+    : q.slice(0, 16).map((t, i) => '<div class="token' + (i === 0 ? ' next' : '') + '">' + t.number + '</div>').join('')
+      + (q.length > 16 ? '<div style="font-size:13px;color:var(--muted);padding:10px 0">+' + (q.length - 16) + ' more</div>' : '');
+
+  // Wait summary
+  const wsum = document.getElementById('wait-summary');
+  if (q.length > 0) {
+    wsum.style.display = 'block';
+    const avg   = state.waitSettings.dine;
+    const ctrs  = state.activeCounters;
+    const wNext = estimateWait(0, ctrs, avg);
+    const wLast = estimateWait(q.length - 1, ctrs, avg);
+    document.getElementById('wsum-next').textContent  = '~' + wNext + ' min';
+    document.getElementById('wsum-total').textContent = '~' + wLast + ' min';
+    const midRow = document.getElementById('wsum-mid-row');
+    if (q.length >= 3) {
+      midRow.style.display = 'flex';
+      const midIdx = Math.floor((q.length - 1) / 2);
+      const wMid   = estimateWait(midIdx, ctrs, avg);
+      document.getElementById('wsum-mid-label').textContent = 'Ticket #' + (midIdx + 1) + ' (middle)';
+      document.getElementById('wsum-mid').textContent = '~' + wMid + ' min';
+    } else {
+      midRow.style.display = 'none';
+    }
+  } else {
+    wsum.style.display = 'none';
+  }
+
+  const ticker = document.getElementById('ticker');
+  if (state.announcements.length > 0) {
+    ticker.classList.remove('hidden');
+    ticker.innerHTML = state.announcements.map(a =>
+      '<div class="ticker-item"><span class="ticker-num">' + a.ticket + '</span><span>is now being served</span>'
+      + (a.recall ? '<span style="color:#A07830;font-weight:600">(Recall)</span>' : '') + '</div>'
+    ).join('');
+  } else {
+    ticker.classList.add('hidden');
+  }
+}
+
+function updateClock() {
+  const t = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  document.getElementById('disp-clock').textContent = t;
+  document.getElementById('nav-clock').textContent  = t;
+}
+setInterval(updateClock, 1000);
+updateClock();
+</script>
+</body>
+</html>
